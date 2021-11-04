@@ -1,0 +1,60 @@
+version: 2.1
+
+jobs:
+  build-code:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - run:
+          name: Build Code
+          command: |
+            cd ~/project/
+            npm install
+            npm run build
+      - save_cache:
+          paths: [node_modules]
+          key: code-build
+
+  test-code:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - code-build
+      - run:
+          name: Test Code
+          command: |
+            cd ~/project/
+            npm run test
+      - save_cache:
+          paths: [node_modules]
+          key: code-build
+
+  lint-code:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - code-build
+      - run:
+          name: Lint Code
+          command: |
+            cd ~/project/
+            npm run lint
+      - save_cache:
+          paths: [node_modules]
+          key: code-build
+
+workflows:
+  default:
+    jobs:
+      - build-code
+      - lint-code:
+          requires: [build-code]
+      - test-code:
+          requires: [build-code]
