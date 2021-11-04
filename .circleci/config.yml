@@ -28,6 +28,8 @@ jobs:
           name: Test Code
           command: |
             cd ~/project/
+            ls
+            npm install
             npm run test
       - save_cache:
           paths: [node_modules]
@@ -45,6 +47,8 @@ jobs:
           name: Lint Code
           command: |
             cd ~/project/
+            ls
+            npm install
             npm run lint
       - save_cache:
           paths: [node_modules]
