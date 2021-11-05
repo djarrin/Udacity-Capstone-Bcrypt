@@ -30,6 +30,7 @@ jobs:
             cd ~/project/
             ls
             npm install
+            cypress install
             npm run test
       - save_cache:
           paths: [node_modules]
