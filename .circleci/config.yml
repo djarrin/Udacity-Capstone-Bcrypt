@@ -28,9 +28,8 @@ jobs:
           name: Test Code
           command: |
             cd ~/project/
-            ls
             npm install
-            ls
+            npm install cypress
             npm run test
       - save_cache:
           paths: [node_modules]
