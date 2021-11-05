@@ -21,16 +21,16 @@ jobs:
       - image: circleci/node:13.8.0
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - code-build
+#      - restore_cache:
+#          keys:
+#            - code-build
       - run:
           name: Test Code
           command: |
             cd ~/project/
             ls
             npm install
-            cypress install
+            ls
             npm run test
       - save_cache:
           paths: [node_modules]
