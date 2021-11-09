@@ -69,13 +69,20 @@ jobs:
   build-deploy-docker-image:
     docker:
       - image: docker:17.05.0-ce-git
+        auth:
+          username: $DOCKER_USERNAME
+          password: $DOCKER_PASSWORD  # context / project UI env-var reference
     steps:
       - checkout
+      - setup_remote_docker:
+          version: 19.03.13
+          docker_layer_caching: true
       - run:
           name: Build and Deploy Docker Image
           command: |
             cd ~/project/
-            docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+            echo $DOCKER_USERNAME
+            echo $DOCKER_PASSWORD
             ./docker_build_deploy
 #    https://circleci.com/blog/how-to-build-a-docker-image-on-circleci-2-0/:
 workflows:
