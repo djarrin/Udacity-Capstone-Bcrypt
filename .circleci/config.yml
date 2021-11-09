@@ -1,5 +1,26 @@
 version: 2.1
 
+commands:
+  destroy-environment:
+    description: Destroy cloudformation stacks given a workflow ID.
+    steps:
+      - run:
+          name: Destroy environments
+          when: on_fail
+          command: |
+            if ! command -v aws &> /dev/null
+            then
+              if ! command -v curl &> /dev/null
+              then
+                apk --no-cache add curl
+              fi
+              alias python="python3"
+              curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
+              unzip awscli-bundle.zip
+              ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
+            fi
+            aws cloudformation delete-stack --stack-name bcrypt-${CIRCLE_WORKFLOW_ID:0:7}
+
 jobs:
   build-code:
     docker:
@@ -27,13 +48,14 @@ jobs:
             yum -y install tar
             yum -y install gzip
       - run:
-          name: Ensure back-end infrastructure exists
+          name: Ensure application infrastructure exists
           command: |
             aws cloudformation deploy \
-              --template-file .circleci/files/backend.yml \
-              --tags project=udapeople \
-              --stack-name "udapeople-be-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --template-file .circleci/files/application-server.yml \
+              --tags project=bcrypt \
+              --stack-name "bcrypt-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+      - destroy-environment
 
   test-code:
     docker:
@@ -104,7 +126,10 @@ workflows:
   default:
     jobs:
       - build-code
-#      - deploy-infrastructure
+      - deploy-infrastructure:
+          filters:
+            branches:
+              only: [ feature/Setup-Infrastructure ]
       - lint-code:
           requires: [build-code]
       - test-code:
