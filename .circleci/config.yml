@@ -16,6 +16,25 @@ jobs:
           paths: [node_modules]
           key: code-build
 
+  deploy-infrastructure:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            yum -y install tar
+            yum -y install gzip
+      - run:
+          name: Ensure back-end infrastructure exists
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/backend.yml \
+              --tags project=udapeople \
+              --stack-name "udapeople-be-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+
   test-code:
     docker:
       - image: circleci/node:13.8.0
@@ -84,10 +103,11 @@ jobs:
 workflows:
   default:
     jobs:
-#      - build-code
-#      - lint-code:
-#          requires: [build-code]
-#      - test-code:
-#          requires: [build-code]
-      - build-deploy-docker-image
-#          requires: [lint-code, test-code]
+      - build-code
+#      - deploy-infrastructure
+      - lint-code:
+          requires: [build-code]
+      - test-code:
+          requires: [build-code]
+      - build-deploy-docker-image:
+          requires: [lint-code, test-code]
