@@ -81,9 +81,10 @@ jobs:
           name: Build and Deploy Docker Image
           command: |
             cd ~/project/
+            ls
             echo $DOCKER_USERNAME
             echo $DOCKER_PASSWORD
-            ./docker_build_deploy
+            ./docker_build_deploy.sh
 #    https://circleci.com/blog/how-to-build-a-docker-image-on-circleci-2-0/:
 workflows:
   default:
