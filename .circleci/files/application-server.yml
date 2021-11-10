@@ -58,9 +58,9 @@ Resources:
         - Key: Name
           Value: !Sub bcrypt-${ID}
 
-    MountPoint:
-      Type: AWS::EC2::VolumeAttachment
-      Properties:
-        InstanceId: !Ref EC2Instance
-        VolumeId: !Ref ExtraStorageVolume
-        Device: /dev/sdh
+  MountPoint:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      InstanceId: !Ref EC2Instance
+      VolumeId: !Ref ExtraStorageVolume
+      Device: /dev/sdh
