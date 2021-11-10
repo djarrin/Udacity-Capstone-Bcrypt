@@ -9,11 +9,11 @@
   apt:
     upgrade: yes
 
-- name: "install dependencies."
-  become: true
-  apt:
-    name: ["curl", "apt-transport-https", "virtualbox"]
-    update_cache: yes
+#- name: "install dependencies."
+#  become: true
+#  apt:
+#    name: ["curl", "apt-transport-https"]
+#    update_cache: yes
 
 - name: Install Docker
   become: true
