@@ -12,7 +12,7 @@
 - name: "install dependencies."
   become: true
   apt:
-    name: ["curl", "apt-transport-https", "node", "npm", "virtualbox", "virtualbox-ext-pack"]
+    name: ["curl", "apt-transport-https", "nodejs", "npm", "virtualbox", "virtualbox-ext-pack"]
     update_cache: yes
 
 - name: Install Minikube
