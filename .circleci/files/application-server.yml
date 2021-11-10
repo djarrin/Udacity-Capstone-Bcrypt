@@ -45,11 +45,13 @@ Resources:
       # Ubuntu 18 or higher works fine
       Properties:
         BlockDeviceMappings:
-          - DeviceName: "/dev/sda1"
+          -
+            DeviceName: "/dev/sda1"
             Ebs:
               VolumeSize: 24
               VolumeType: gp2
-          - DeviceName: "/dev/sdf"
+          -
+            DeviceName: "/dev/sdf"
             Ebs:
               VolumeSize: 64
               VolumeType: gp2
