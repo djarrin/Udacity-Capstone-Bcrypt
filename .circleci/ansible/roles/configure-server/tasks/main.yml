@@ -16,27 +16,31 @@
     update_cache: yes
 
 - name: Install Minikube
+  become: true
   shell: |
     cd /home/ubuntu/
     wget https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-    sudo cp minikube-linux-amd64 /usr/local/bin/minikube
-    sudo chmod 755 /usr/local/bin/minikube
+    cp minikube-linux-amd64 /usr/local/bin/minikube
+    chmod 755 /usr/local/bin/minikube
     minikube version
 
 - name: Install Kubectl
+  become: true
   shell: |
     cd /home/ubuntu/
-    sudo curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+    curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
     chmod +x ./kubectl
-    sudo mv ./kubectl /usr/local/bin/kubectl
+    mv ./kubectl /usr/local/bin/kubectl
     kubectl version -o json
 
 - name: Start minikube
+  become: true
   shell: |
     cd /home/ubuntu/
     minikube start
 
 - name: Run Kubernetes
+  become: true
   shell: |
     cd /home/ubuntu/
     kubectl run application --image=djarrin/bcrypt-image
@@ -47,6 +51,7 @@
     minutes: 3
 
 - name: Forward Kubernetes Ports
+  become: true
   shell: |
     cd /home/ubuntu/
     kubectl port-forward application 8000:80
