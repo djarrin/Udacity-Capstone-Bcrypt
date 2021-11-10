@@ -45,7 +45,10 @@
 - name: Start minikube
   shell: |
     cd /home/ubuntu/
-    minikube start --force --driver=docker
+    sudo groupadd docker
+    sudo usermod -aG docker ubuntu
+    newgrp docker
+    minikube start --driver=docker
 
 - name: Run Kubernetes
   become: true
