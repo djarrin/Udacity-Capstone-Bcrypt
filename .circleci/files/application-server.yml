@@ -46,4 +46,4 @@ Resources:
       ImageId: ami-068663a3c619dd892
       Tags:
         - Key: Name
-          Value: !Sub bcrypt-application-${ID}
+          Value: !Sub bcrypt-${ID}
