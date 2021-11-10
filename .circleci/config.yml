@@ -55,6 +55,40 @@ jobs:
               --tags project=bcrypt \
               --stack-name "bcrypt-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: Add back-end ip to ansible inventory
+          command: |
+            aws ec2 describe-instances \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --filters Name=tag:Name,Values=bcrypt-${CIRCLE_WORKFLOW_ID:0:7} \
+            --output text >> .circleci/ansible/inventory.txt
+      - run:
+          name: Contents of inventory.txt
+          command: |
+            cat .circleci/ansible/inventory.txt
+      - persist_to_workspace:
+          root: .circleci/ansible
+          paths:
+            - inventory.txt
+      - destroy-environment
+
+  configure-infrastructure:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: [ "2f:bc:c6:c4:f3:ae:94:b9:b6:78:ac:2a:f8:1f:91:41" ]
+      - attach_workspace:
+          at: /tmp/.circleci/ansible
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible
+      - run:
+          name: Configure server
+          command: |
+            ansible-playbook -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
       - destroy-environment
 
   test-code:
@@ -121,18 +155,21 @@ jobs:
             cd ~/project/
             docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
             ./docker_build_deploy.sh
-#    https://circleci.com/blog/how-to-build-a-docker-image-on-circleci-2-0/:
+
 workflows:
   default:
     jobs:
       - build-code
-      - deploy-infrastructure:
-          filters:
-            branches:
-              only: [ feature/Setup-Infrastructure ]
       - lint-code:
           requires: [build-code]
       - test-code:
           requires: [build-code]
       - build-deploy-docker-image:
           requires: [lint-code, test-code]
+      - deploy-infrastructure:
+          requires: [build-deploy-docker-image]
+          filters:
+            branches:
+              only: [ feature/Setup-Infrastructure ]
+      - configure-infrastructure:
+          requires: [ deploy-infrastructure ]

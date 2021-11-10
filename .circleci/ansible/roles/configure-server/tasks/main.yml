@@ -1,0 +1,52 @@
+---
+- name: "update apt packages."
+  become: yes
+  apt:
+    update_cache: yes
+
+- name: "upgrade packages"
+  become: yes
+  apt:
+    upgrade: yes
+
+- name: "install dependencies."
+  become: true
+  apt:
+    name: ["curl", "apt-transport-https", "node", "npm", "virtualbox", "virtualbox-ext-pack"]
+    update_cache: yes
+
+- name: Install Minikube
+  shell: |
+    cd /home/ubuntu/
+    wget https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+    sudo cp minikube-linux-amd64 /usr/local/bin/minikube
+    sudo chmod 755 /usr/local/bin/minikube
+    minikube version
+
+- name: Install Kubectl
+  shell: |
+    cd /home/ubuntu/
+    sudo curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+    chmod +x ./kubectl
+    sudo mv ./kubectl /usr/local/bin/kubectl
+    kubectl version -o json
+
+- name: Start minikube
+  shell: |
+    cd /home/ubuntu/
+    minikube start
+
+- name: Run Kubernetes
+  shell: |
+    cd /home/ubuntu/
+    kubectl run application --image=djarrin/bcrypt-image
+    kubectl get pods --all-namespaces
+
+- name: Wait for Kubernetes to Start Up
+  pause:
+    minutes: 3
+
+- name: Forward Kubernetes Ports
+  shell: |
+    cd /home/ubuntu/
+    kubectl port-forward application 8000:80
