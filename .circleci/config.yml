@@ -89,7 +89,7 @@ jobs:
           name: Configure server
           command: |
             ansible-playbook -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
-      - destroy-environment
+#      - destroy-environment
 
   test-code:
     docker:
