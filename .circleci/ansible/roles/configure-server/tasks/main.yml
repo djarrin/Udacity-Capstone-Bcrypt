@@ -43,10 +43,9 @@
     mv ./kubectl /usr/local/bin/kubectl
 
 - name: Start minikube
-  become: true
   shell: |
     cd /home/ubuntu/
-    minikube start --driver=docker
+    minikube start --force --driver=docker
 
 - name: Run Kubernetes
   become: true
