@@ -45,7 +45,7 @@
 - name: Start minikube
   shell: |
     cd /home/ubuntu/
-    echo pwd
+    pwd
     sudo groupadd docker
     echo "groupadd done"
     sudo usermod -aG docker ubuntu
