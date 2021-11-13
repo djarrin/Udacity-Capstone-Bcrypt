@@ -7,7 +7,6 @@
     sudo chown -R $USER $HOME/.kube $HOME/.minikube
 
 - name: Run Kubernetes
-  become: true
   shell: |
     cd /home/ubuntu/
     kubectl run application --image=djarrin/bcrypt-image
@@ -17,7 +16,6 @@
     minutes: 3
 
 - name: Forward Kubernetes Ports
-  become: true
   shell: |
     cd /home/ubuntu/
     kubectl get pods --all-namespaces
