@@ -2,7 +2,9 @@
 - name: Start MiniKube
   shell: |
     cd /home/ubuntu/
-    minikube start --vm-driver=none
+    sudo minikube start --vm-driver=none
+    sudo mv /home/ubuntu/.kube /home/ubuntu/.minikube $HOME
+    sudo chown -R $USER $HOME/.kube $HOME/.minikube
 
 - name: Run Kubernetes
   become: true
