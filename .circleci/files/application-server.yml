@@ -37,7 +37,7 @@ Resources:
   EC2Instance:
     Type: AWS::EC2::Instance
     Properties:
-      InstanceType: t3.small
+      InstanceType: t3.medium
       SecurityGroups:
         - Ref: InstanceSecurityGroup
       KeyName: AWS_EC2_DEMO # If you use another key pair name, you should change this value to match.
