@@ -47,6 +47,6 @@
     cd /home/ubuntu/
     sudo groupadd docker
     sudo usermod -aG docker ubuntu
-    sudo chown -R $USER /home/ubuntu/.kube
+#    sudo chown -R $USER /home/ubuntu/.kube
 #    newgrp docker
 #    sudo systemctl restart docker
