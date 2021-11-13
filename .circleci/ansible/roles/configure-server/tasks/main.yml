@@ -47,7 +47,6 @@
     cd /home/ubuntu/
     sudo groupadd docker
     sudo usermod -aG docker ubuntu
-#    newgrp docker
     minikube start --driver=docker
 
 - name: Run Kubernetes
