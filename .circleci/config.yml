@@ -89,11 +89,26 @@ jobs:
           name: Configure server
           command: |
             ansible-playbook -v -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
+        - destroy-environment
+
+  deploy-application:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: [ "2f:bc:c6:c4:f3:ae:94:b9:b6:78:ac:2a:f8:1f:91:41" ]
+      - attach_workspace:
+          at: /tmp/.circleci/ansible
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible
       - run:
           name: Start Up Server
           command: |
             ansible-playbook -v -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/start-server.yml
-  #      - destroy-environment
+      - destroy-environment
 
   test-code:
     docker:
@@ -177,3 +192,5 @@ workflows:
               only: [ feature/Setup-Infrastructure ]
       - configure-infrastructure:
           requires: [ deploy-infrastructure ]
+      - deploy-application:
+          requires: [ configure-infrastructure ]

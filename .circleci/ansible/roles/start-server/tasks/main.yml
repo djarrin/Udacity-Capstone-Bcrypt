@@ -2,7 +2,7 @@
 - name: Start MiniKube
   shell: |
     cd /home/ubuntu/
-    minikube start --driver=docker
+    minikube start --vm-driver=none
 
 - name: Run Kubernetes
   become: true
