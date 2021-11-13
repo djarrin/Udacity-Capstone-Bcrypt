@@ -42,28 +42,10 @@
     chmod +x ./kubectl
     mv ./kubectl /usr/local/bin/kubectl
 
-- name: Start minikube
+- name: Add ubuntu user
   shell: |
     cd /home/ubuntu/
     sudo groupadd docker
     sudo usermod -aG docker ubuntu
     newgrp docker
     sudo systemctl restart docker
-    minikube start --driver=docker
-
-- name: Run Kubernetes
-  become: true
-  shell: |
-    cd /home/ubuntu/
-    kubectl run application --image=djarrin/bcrypt-image
-    kubectl get pods --all-namespaces
-
-- name: Wait for Kubernetes to Start Up
-  pause:
-    minutes: 3
-
-- name: Forward Kubernetes Ports
-  become: true
-  shell: |
-    cd /home/ubuntu/
-    kubectl port-forward application 8000:80
