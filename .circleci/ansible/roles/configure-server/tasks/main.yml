@@ -47,9 +47,7 @@
     cd /home/ubuntu/
     sudo groupadd docker
     sudo usermod -aG docker ubuntu
-#    echo "usermod dßone"
-#    newgrp docker
-#    echo "newgrp done"
+    newgrp docker
 #    minikube start --driver=docker
 #    echo "minikube start done"
 
