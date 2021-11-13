@@ -11,7 +11,6 @@
   shell: |
     cd /home/ubuntu/
     kubectl run application --image=djarrin/bcrypt-image
-    kubectl get pods --all-namespaces
 
 - name: Wait for Kubernetes to Start Up
   pause:
@@ -21,4 +20,5 @@
   become: true
   shell: |
     cd /home/ubuntu/
+    kubectl get pods --all-namespaces
     kubectl port-forward application 8000:80
