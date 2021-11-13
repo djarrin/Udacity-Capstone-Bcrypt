@@ -1,6 +1,7 @@
 ---
 - name: Start MiniKube
   shell: |
+    cd /home/ubuntu/
     minikube start --driver=docker
 
 - name: Run Kubernetes
