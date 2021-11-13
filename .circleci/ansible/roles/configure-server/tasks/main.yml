@@ -48,12 +48,12 @@
     pwd
     sudo groupadd docker
     echo "groupadd done"
-    sudo usermod -aG docker ubuntu
-    echo "usermod done"
-    newgrp docker
-    echo "newgrp done"
-    minikube start --driver=docker
-    echo "minikube start done"
+#    sudo usermod -aG docker ubuntu
+#    echo "usermod done"
+#    newgrp docker
+#    echo "newgrp done"
+#    minikube start --driver=docker
+#    echo "minikube start done"
 
 - name: Run Kubernetes
   become: true
