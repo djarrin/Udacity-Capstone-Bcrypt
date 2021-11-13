@@ -47,9 +47,8 @@
     cd /home/ubuntu/
     sudo groupadd docker
     sudo usermod -aG docker ubuntu
-    newgrp docker
-#    minikube start --driver=docker
-#    echo "minikube start done"
+#    newgrp docker
+    minikube start --driver=docker
 
 - name: Run Kubernetes
   become: true
