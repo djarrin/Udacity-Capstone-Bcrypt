@@ -142,7 +142,7 @@ workflows:
           aws-access-key-id: AWS_ACCESS_KEY_ID
           aws-secret-access-key: AWS_SECRET_ACCESS_KEY
           region: AWS_REGION
-          tag: "${CIRCLE_BRANCH}_${CIRCLE_SHA1},${CIRCLE_BRANCH}_latest,udacity_bcrypt_latest"
+          tag: "udacity_bcrypt_latest"
           requires: [lint-code, test-code]
           filters:
             branches:
