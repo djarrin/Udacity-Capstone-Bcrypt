@@ -1,4 +1,7 @@
 version: 2.1
+orbs:
+  aws-ecr: circleci/aws-ecr@6.9.1
+  aws-ecs: circleci/aws-ecs@1.2.0
 
 commands:
   destroy-environment:
@@ -36,41 +39,6 @@ jobs:
       - save_cache:
           paths: [node_modules]
           key: code-build
-
-  deploy-infrastructure:
-    docker:
-      - image: amazon/aws-cli
-    steps:
-      - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            yum -y install tar
-            yum -y install gzip
-      - run:
-          name: Ensure application infrastructure exists
-          command: |
-            aws cloudformation deploy \
-              --template-file .circleci/files/application-server.yml \
-              --tags project=bcrypt \
-              --stack-name "bcrypt-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
-      - run:
-          name: Add back-end ip to ansible inventory
-          command: |
-            aws ec2 describe-instances \
-            --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --filters Name=tag:Name,Values=bcrypt-${CIRCLE_WORKFLOW_ID:0:7} \
-            --output text >> .circleci/ansible/inventory.txt
-      - run:
-          name: Contents of inventory.txt
-          command: |
-            cat .circleci/ansible/inventory.txt
-      - persist_to_workspace:
-          root: .circleci/ansible
-          paths:
-            - inventory.txt
-      - destroy-environment
 
   configure-infrastructure:
     docker:
@@ -160,37 +128,20 @@ jobs:
           paths: [node_modules]
           key: code-build
 
-  build-deploy-docker-image:
-    docker:
-      - image: docker:17.05.0-ce-git
-    steps:
-      - checkout
-      - setup_remote_docker:
-          version: 19.03.13
-          docker_layer_caching: true
-      - run:
-          name: Build and Deploy Docker Image
-          command: |
-            cd ~/project/
-            docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
-            ./docker_build_deploy.sh
-
 workflows:
   default:
     jobs:
-#      - build-code
-#      - lint-code:
-#          requires: [build-code]
-#      - test-code:
-#          requires: [build-code]
-#      - build-deploy-docker-image:
-#          requires: [lint-code, test-code]
-      - deploy-infrastructure:
-#          requires: [build-deploy-docker-image]
+      - build-code
+      - lint-code:
+          requires: [build-code]
+      - test-code:
+          requires: [build-code]
+      - aws-ecr/build-and-push-image:
+          repo: "djarrin_udacity"
+          tag: "${CIRCLE_BRANCH}_${CIRCLE_SHA1},${CIRCLE_BRANCH}_latest,udacity_bcrypt_latest"
+          requires: [lint-code, test-code]
           filters:
             branches:
-              only: [ feature/Setup-Infrastructure ]
-      - configure-infrastructure:
-          requires: [ deploy-infrastructure ]
-      - deploy-application:
-          requires: [ configure-infrastructure ]
+              only:
+                - master
+                - feature/ecs-ecr-approach
