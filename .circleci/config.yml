@@ -136,16 +136,9 @@ workflows:
           requires: [build-code]
       - test-code:
           requires: [build-code]
-      - aws-ecr/build-and-push-image:
-          repo: "djarrin_udacity"
-          account-url: AWS_ECR_ACCOUNT_URL
-          aws-access-key-id: AWS_ACCESS_KEY_ID
-          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
-          region: AWS_REGION
-          tag: "udacity_bcrypt_latest"
+      - deploy-infrastructure:
           requires: [lint-code, test-code]
           filters:
             branches:
               only:
-                - master
-                - feature/ecs-ecr-approach
+                - deploy-infrastructure
