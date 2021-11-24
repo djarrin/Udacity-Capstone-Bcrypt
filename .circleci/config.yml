@@ -173,6 +173,7 @@ jobs:
                 return 1
               else
                 return 0
+              fi
             done
       - destroy-infrastrucure
 
