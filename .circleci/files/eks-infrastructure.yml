@@ -7,6 +7,10 @@ Parameters:
     Default: EKS
     Description: The desired name of your AWS EKS Cluster.
 
+  WorkflowID:
+    Description: Unique identifier.
+    Type: String
+
   EKSVersion:
     Type: String
     Default: 1.18
@@ -282,7 +286,7 @@ Resources:
         DesiredSize: !Ref EKSDesiredWorkerNode
         MaxSize: 7
       Labels:
-        Project: aws-eks
+        Project: bcrypt
       Subnets:
         - !Ref eksPublicSubnet01
         - !Ref eksPublicSubnet02
@@ -298,3 +302,8 @@ Outputs:
   VpcId:
     Description: The eksVPC Id
     Value: !Ref eksVPC
+  WorkflowID:
+    Value: !Sub ${WorkflowID}
+    Description: Stacks workflow ID
+    Export:
+      Name: WorkflowID

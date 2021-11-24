@@ -4,7 +4,7 @@ orbs:
   aws-ecs: circleci/aws-ecs@2.2.1
 
 commands:
-  destroy-environment:
+  destroy-infrastrucure:
     description: Destroy cloudformation stacks given a workflow ID.
     steps:
       - run:
@@ -22,7 +22,7 @@ commands:
               unzip awscli-bundle.zip
               ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
             fi
-            aws cloudformation delete-stack --stack-name bcrypt-${CIRCLE_WORKFLOW_ID:0:7}
+            aws cloudformation delete-stack --stack-name bcrypt-stack-${CIRCLE_WORKFLOW_ID:0:7}
 
 jobs:
   build-code:
@@ -128,6 +128,70 @@ jobs:
           paths: [node_modules]
           key: code-build
 
+  deploy-infrastructure:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Deploy Infrastructure as Code
+          command: |
+            aws cloudformation create-stack --stack-name bcrypt-stack-${CIRCLE_WORKFLOW_ID:0:7} \
+              --region us-east-1 \
+              --template-body .circleci/files/eks-infrastructure.yaml  \
+              --capabilities CAPABILITY_NAMED_IAM \
+              --parameter-overrides EKSClusterName="bcrypt-cluster-${CIRCLE_WORKFLOW_ID:0:7}", WorkflowID=${CIRCLE_WORKFLOW_ID:0:7}
+
+      - run:
+          name: Checking on Status of the Stack
+          command: |
+            started_date=$(date '+%H:%M:%S')
+            start=`date +%s`
+            while true; do
+              if [[ $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack-${CIRCLE_WORKFLOW_ID:0:7} --query "Stacks[*].StackStatus" --output text) == CREATE_IN_PROGRESS ]]
+              then
+                echo -e "EKS Cluster status : CREATE IN PROGRESS \n"
+                sleep 10
+              elif [[ $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack-${CIRCLE_WORKFLOW_ID:0:7} --query "Stacks[*].StackStatus" --output text) == CREATE_COMPLETE ]]
+              then
+                echo -e "EKS Cluster status : SUCCESSFULLY CREATED \n"
+                end=`date +%s`
+                runtime=$((end-start))
+                finished_date=$(date '+%H:%M:%S')
+                echo "started at :" $started_date
+                echo "finished at :" $finished_date
+                hours=$((runtime / 3600)); minutes=$(( (runtime % 3600) / 60 )); seconds=$(( (runtime % 3600) % 60 )); echo "Total time : $hours h $minutes min $seconds sec"
+                break
+              else
+                echo -e "EKS Cluster status : $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack-${CIRCLE_WORKFLOW_ID:0:7} --query "Stacks[*].StackStatus" --output text) \n"
+                break
+              fi
+            done
+            return 0
+      - destroy-infrastrucure
+
+  cleanup-infrastructure:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Delete Old Workflow Stack
+          command: |
+            export OldWorkflowID=$(aws cloudformation \
+                                         list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
+                                         --no-paginate --output text)
+            echo "OldWorkflowID: ${OldWorkflowID}"
+            echo "CIRCLE_WORKFLOW_ID: ${CIRCLE_WORKFLOW_ID:0:7}"
+            export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
+                                  --stack-status-filter CREATE_COMPLETE --no-paginate --output text))
+            echo "Stack names: ${STACKS[@]}"
+
+            if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
+            then
+              echo BASH_REMATCH
+              aws cloudformation delete-stack --stack-name bcrypt-stack-${BASH_REMATCH}
+            fi
 workflows:
   default:
     jobs:
@@ -136,8 +200,25 @@ workflows:
           requires: [build-code]
       - test-code:
           requires: [build-code]
+      - aws-ecr/build-and-push-image:
+          repo: "djarrin_udacity"
+          account-url: AWS_ECR_ACCOUNT_URL
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+          region: AWS_REGION
+          tag: "udacity_bcrypt_latest"
+          requires: [ lint-code, test-code ]
+          filters:
+            branches:
+              only:
+                - master
       - deploy-infrastructure:
-          requires: [lint-code, test-code]
+          filters:
+            branches:
+              only:
+                - deploy-infrastructure
+      - cleanup-infrastructure:
+          requires: [ deploy-infrastructure ]
           filters:
             branches:
               only:
