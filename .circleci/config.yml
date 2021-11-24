@@ -167,7 +167,6 @@ jobs:
                 break
               fi
             done
-            return 0
       - destroy-infrastrucure
 
   cleanup-infrastructure:
