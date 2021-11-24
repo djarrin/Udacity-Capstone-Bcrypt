@@ -1,6 +1,6 @@
----
-AWSTemplateFormatVersion: '2010-09-09'
-#credit to this file to Sami Amoura: https://en.sokube.ch/post/aws-kubernetes-aws-elastic-kubernetes-service-eks-1
+Description: >
+  Bcrypt eks infrastructure
+
 Parameters:
   EKSClusterName:
     Type: String
