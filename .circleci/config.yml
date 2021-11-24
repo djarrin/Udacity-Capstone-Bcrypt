@@ -165,19 +165,13 @@ jobs:
                 break
               elif [[ $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack-${CIRCLE_WORKFLOW_ID:0:7} --query "Stacks[*].StackStatus" --output text) == ROLLBACK_IN_PROGRESS ]]
               then
-                success=0
+                return 1
                 break
               else
                 echo -e "EKS Cluster status : $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack-${CIRCLE_WORKFLOW_ID:0:7} --query "Stacks[*].StackStatus" --output text) \n"
                 break
               fi
             done
-            if success == 0
-            then
-              return 1
-            else
-              return 0
-            fi
       - destroy-infrastrucure
 
   cleanup-infrastructure:
