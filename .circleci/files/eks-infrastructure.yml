@@ -1,6 +1,6 @@
 Description: >
   Bcrypt eks infrastructure
-
+#some credit to this site for this file: https://en.sokube.ch/post/aws-kubernetes-aws-elastic-kubernetes-service-eks-1
 Parameters:
   EKSClusterName:
     Type: String
