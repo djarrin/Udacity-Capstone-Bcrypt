@@ -79,12 +79,12 @@ Parameters:
 
   AvailabilityZonePublicSubnet01:
     Type: CommaDelimitedList<AWS::EC2::AvailabilityZone::Name>
-    Default: us-east-1
+    Default: us-east-1a
     Description: Availability Zone for the Public Subnet 01.
 
   AvailabilityZonePublicSubnet02:
     Type: CommaDelimitedList<AWS::EC2::AvailabilityZone::Name>
-    Default: us-east-1
+    Default: us-east-1b
     Description: Availability Zone for the Public Subnet 02.
 
 Metadata:
