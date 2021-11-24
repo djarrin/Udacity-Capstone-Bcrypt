@@ -134,6 +134,16 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install dependencies
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y apt-transport-https ca-certificates curl
+            sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+            echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+            sudo apt-get update
+            sudo apt-get install -y kubectl
+
+      - run:
           name: create deployment of image
           command: |
             kubectl apply -f .circleci/files/deployment.yml
@@ -209,26 +219,26 @@ jobs:
 workflows:
   default:
     jobs:
-      - build-code
-      - lint-code:
-          requires: [build-code]
-      - test-code:
-          requires: [build-code]
-      - aws-ecr/build-and-push-image:
-          repo: "djarrin_udacity"
-          account-url: AWS_ECR_ACCOUNT_URL
-          aws-access-key-id: AWS_ACCESS_KEY_ID
-          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
-          region: AWS_REGION
-          tag: "udacity_bcrypt_latest"
-          requires: [ lint-code, test-code ]
-          filters:
-            branches:
-              only:
-                - master
-                - deployment
-      - deploy-image:
-          requires: [aws-ecr/build-and-push-image]
+#      - build-code
+#      - lint-code:
+#          requires: [build-code]
+#      - test-code:
+#          requires: [build-code]
+#      - aws-ecr/build-and-push-image:
+#          repo: "djarrin_udacity"
+#          account-url: AWS_ECR_ACCOUNT_URL
+#          aws-access-key-id: AWS_ACCESS_KEY_ID
+#          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+#          region: AWS_REGION
+#          tag: "udacity_bcrypt_latest"
+#          requires: [ lint-code, test-code ]
+#          filters:
+#            branches:
+#              only:
+#                - master
+#                - deployment
+      - deploy-image
+#          requires: [aws-ecr/build-and-push-image]
       - deploy-infrastructure:
           filters:
             branches:
