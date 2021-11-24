@@ -140,7 +140,9 @@ jobs:
               --region us-east-1 \
               --template-body .circleci/files/eks-infrastructure.yaml  \
               --capabilities CAPABILITY_NAMED_IAM \
-              --parameters EKSClusterName="bcrypt-cluster-${CIRCLE_WORKFLOW_ID:0:7}" WorkflowID=${CIRCLE_WORKFLOW_ID:0:7}
+              --parameters \
+                  ParameterKey=EKSClusterName, ParameterValue="bcrypt-cluster-${CIRCLE_WORKFLOW_ID:0:7}", \
+                  ParameterKey=WorkflowID, ParameterValue=${CIRCLE_WORKFLOW_ID:0:7}
 
       - run:
           name: Checking on Status of the Stack
