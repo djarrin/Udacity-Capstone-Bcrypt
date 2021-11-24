@@ -169,6 +169,7 @@ jobs:
                 break
               fi
               if success == 0
+              then
                 return 1
               else
                 return 0
