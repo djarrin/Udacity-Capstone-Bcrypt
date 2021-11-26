@@ -170,11 +170,11 @@ jobs:
           install-kubectl: true
           aws-region: << parameters.aws-region >>
       - kubernetes/create-or-update-resource:
-          resource-file-path: ".circleci/files/demo-app-deployment.yaml"
+          resource-file-path: ".circleci/files/app-deployment.yaml"
           get-rollout-status: true
           resource-name: deployment/demoapp
       - kubernetes/create-or-update-resource:
-          resource-file-path: ".circleci/files/demo-app-service.yaml"
+          resource-file-path: ".circleci/files/app-service.yaml"
 
   deploy-infrastructure:
     docker:
