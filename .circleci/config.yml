@@ -3,6 +3,8 @@ orbs:
   aws-ecr: circleci/aws-ecr@7.2.0
   aws-ecs: circleci/aws-ecs@2.2.1
   kubectl: airswap/kubectl@0.0.3
+  aws-eks: circleci/aws-eks@0.2.0
+  kubernetes: circleci/kubernetes@0.3.0
 
 
 commands:
@@ -60,25 +62,6 @@ jobs:
           command: |
             ansible-playbook -v -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
       - destroy-environment
-
-  deploy-application:
-    docker:
-      - image: python:3.7-alpine3.11
-    steps:
-      - checkout
-      - add_ssh_keys:
-          fingerprints: [ "2f:bc:c6:c4:f3:ae:94:b9:b6:78:ac:2a:f8:1f:91:41" ]
-      - attach_workspace:
-          at: /tmp/.circleci/ansible
-      - run:
-          name: Install dependencies
-          command: |
-            apk add --update ansible
-      - run:
-          name: Start Up Server
-          command: |
-            ansible-playbook -v -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/start-server.yml
-#      - destroy-environment
 
   test-code:
     docker:
@@ -149,6 +132,39 @@ jobs:
           name: create deployment of image
           command: |
             kubectl apply -f .circleci/files/deployment.yml
+  deploy-application:
+    executor: aws-eks/python3
+    parameters:
+      cluster-name:
+        description: |
+          Name of the EKS cluster
+        type: string
+      docker-image-name:
+        description: |
+          Name of the docker image to be deployed
+        type: string
+      version-info:
+        description: |
+          App version information
+        type: string
+      aws-region:
+        description: |
+          AWS region
+        type: string
+        default: ""
+    steps:
+      - checkout
+      - run:
+          name: Create deployment manifest
+          command: |
+            # Replace the placeholders in the manifest with the intended values.
+            # This is to avoid hardcoding the image name in the manifest, to make this
+            # demo project more portable.
+            BUILD_DATE=$(date '+%Y%m%d%H%M%S')
+            cat .circleci/files/app-deployment.yaml.template |\
+               sed "s|DOCKER_IMAGE_NAME|<< parameters.docker-image-name >>|\
+                g;s|BUILD_DATE_VALUE|$BUILD_DATE|g;s|VERSION_INFO_VALUE|\
+                << parameters.version-info >>|g" > .circleci/files/app-deployment.yaml
 
   deploy-infrastructure:
     docker:
@@ -239,8 +255,16 @@ workflows:
 #              only:
 #                - master
 #                - deployment
-      - deploy-image
-#          requires: [aws-ecr/build-and-push-image]
+      - deploy-application:
+          cluster-name: bcrypt-cluster-32432
+          aws-region: us-east-1
+          docker-image-name: "135924004413.dkr.ecr.us-east-1.amazonaws.com/djarrin_udacity:udacity_bcrypt_latest"
+          version-info: "${CIRCLE_SHA1}"
+          filters:
+            branches:
+              only:
+                - master
+                - deployment
       - deploy-infrastructure:
           filters:
             branches:
