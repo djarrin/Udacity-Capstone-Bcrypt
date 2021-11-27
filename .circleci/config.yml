@@ -186,7 +186,7 @@ jobs:
               --region us-east-1 \
               --template-body file://.circleci/files/eks-infrastructure.yml  \
               --capabilities CAPABILITY_NAMED_IAM \
-              --parameters ParameterKey=EKSClusterName,ParameterValue=bcrypt-cluster-${CIRCLE_WORKFLOW_ID:0:7} ParameterKey=WorkflowID,ParameterValue=${CIRCLE_WORKFLOW_ID:0:7}
+              --parameters ParameterKey=EKSClusterName,ParameterValue=bcrypt-cluster ParameterKey=WorkflowID,ParameterValue=${CIRCLE_WORKFLOW_ID:0:7}
 
       - run:
           name: Checking on Status of the Stack
@@ -195,11 +195,11 @@ jobs:
             start=`date +%s`
             success=1
             while true; do
-              if [[ $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack-${CIRCLE_WORKFLOW_ID:0:7} --query "Stacks[*].StackStatus" --output text) == CREATE_IN_PROGRESS ]]
+              if [[ $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack --query "Stacks[*].StackStatus" --output text) == CREATE_IN_PROGRESS ]]
               then
                 echo -e "EKS Cluster status : CREATE IN PROGRESS \n"
                 sleep 10
-              elif [[ $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack-${CIRCLE_WORKFLOW_ID:0:7} --query "Stacks[*].StackStatus" --output text) == CREATE_COMPLETE ]]
+              elif [[ $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack --query "Stacks[*].StackStatus" --output text) == CREATE_COMPLETE ]]
               then
                 echo -e "EKS Cluster status : SUCCESSFULLY CREATED \n"
                 end=`date +%s`
@@ -209,12 +209,12 @@ jobs:
                 echo "finished at :" $finished_date
                 hours=$((runtime / 3600)); minutes=$(( (runtime % 3600) / 60 )); seconds=$(( (runtime % 3600) % 60 )); echo "Total time : $hours h $minutes min $seconds sec"
                 break
-              elif [[ $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack-${CIRCLE_WORKFLOW_ID:0:7} --query "Stacks[*].StackStatus" --output text) == ROLLBACK_IN_PROGRESS ]]
+              elif [[ $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack --query "Stacks[*].StackStatus" --output text) == ROLLBACK_IN_PROGRESS ]]
               then
                 return 1
                 break
               else
-                echo -e "EKS Cluster status : $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack-${CIRCLE_WORKFLOW_ID:0:7} --query "Stacks[*].StackStatus" --output text) \n"
+                echo -e "EKS Cluster status : $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack --query "Stacks[*].StackStatus" --output text) \n"
                 break
               fi
             done
