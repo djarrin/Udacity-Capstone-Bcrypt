@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: demoapp
   labels:
-    app: demo
+    app: bcrypt
 spec:
   # automatically create an external load-balanced IP for the service.
   type: LoadBalancer
@@ -12,4 +12,4 @@ spec:
       targetPort: 8080
       protocol: TCP
   selector:
-    app: demo
+    app: bcrypt

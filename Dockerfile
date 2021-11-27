@@ -1,5 +1,5 @@
 FROM node:12.13.1-stretch-slim
-fake bad stuff
+
 WORKDIR /app
 
 COPY . ./

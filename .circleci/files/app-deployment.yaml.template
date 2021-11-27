@@ -3,16 +3,16 @@ kind: Deployment
 metadata:
   name: demoapp
   labels:
-    app: demo
+    app: bcrypt
 spec:
   selector:
     matchLabels:
-      app: demo
+      app: bcrypt
   replicas: 3
   template:
     metadata:
       labels:
-        app: demo
+        app: bcrypt
     spec:
       containers:
         - name: app
