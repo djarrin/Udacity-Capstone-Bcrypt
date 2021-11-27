@@ -6,7 +6,6 @@ orbs:
   aws-eks: circleci/aws-eks@0.2.0
   kubernetes: circleci/kubernetes@0.3.0
 
-
 commands:
   destroy-infrastrucure:
     description: Destroy cloudformation stacks given a workflow ID.
@@ -43,25 +42,6 @@ jobs:
       - save_cache:
           paths: [node_modules]
           key: code-build
-
-  configure-infrastructure:
-    docker:
-      - image: python:3.7-alpine3.11
-    steps:
-      - checkout
-      - add_ssh_keys:
-          fingerprints: [ "2f:bc:c6:c4:f3:ae:94:b9:b6:78:ac:2a:f8:1f:91:41" ]
-      - attach_workspace:
-          at: /tmp/.circleci/ansible
-      - run:
-          name: Install dependencies
-          command: |
-            apk add --update ansible
-      - run:
-          name: Configure server
-          command: |
-            ansible-playbook -v -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
-      - destroy-environment
 
   test-code:
     docker:
@@ -113,25 +93,6 @@ jobs:
           paths: [node_modules]
           key: code-build
 
-  deploy-image:
-    docker:
-      - image: circleci/node:13.8.0
-    steps:
-      - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y apt-transport-https ca-certificates curl
-            sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
-            echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-            sudo apt-get update
-            sudo apt-get install -y kubectl
-
-      - run:
-          name: create deployment of image
-          command: |
-            kubectl apply -f .circleci/files/deployment.yml
   deploy-application:
     executor: aws-eks/python3
     parameters:
@@ -224,7 +185,7 @@ jobs:
       - run:
           name: Deploy Infrastructure as Code
           command: |
-            aws cloudformation create-stack --stack-name bcrypt-stack-${CIRCLE_WORKFLOW_ID:0:7} \
+            aws cloudformation create-stack --stack-name bcrypt-stack \
               --region us-east-1 \
               --template-body file://.circleci/files/eks-infrastructure.yml  \
               --capabilities CAPABILITY_NAMED_IAM \
@@ -262,51 +223,29 @@ jobs:
             done
       - destroy-infrastrucure
 
-  cleanup-infrastructure:
-    docker:
-      - image: amazon/aws-cli
-    steps:
-      - checkout
-      - run:
-          name: Delete Old Workflow Stack
-          command: |
-            export OldWorkflowID=$(aws cloudformation \
-                                         list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
-                                         --no-paginate --output text)
-            echo "OldWorkflowID: ${OldWorkflowID}"
-            echo "CIRCLE_WORKFLOW_ID: ${CIRCLE_WORKFLOW_ID:0:7}"
-            export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
-                                  --stack-status-filter CREATE_COMPLETE --no-paginate --output text))
-            echo "Stack names: ${STACKS[@]}"
-
-            if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
-            then
-              echo BASH_REMATCH
-              aws cloudformation delete-stack --stack-name bcrypt-stack-${BASH_REMATCH}
-            fi
 workflows:
   default:
     jobs:
-#      - build-code
-#      - lint-code:
-#          requires: [build-code]
-#      - test-code:
-#          requires: [build-code]
-#      - aws-ecr/build-and-push-image:
-#          repo: "djarrin_udacity"
-#          account-url: AWS_ECR_ACCOUNT_URL
-#          aws-access-key-id: AWS_ACCESS_KEY_ID
-#          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
-#          region: AWS_REGION
-#          tag: "udacity_bcrypt_latest"
-#          requires: [ lint-code, test-code ]
-#          filters:
-#            branches:
-#              only:
-#                - master
-#                - deployment
+      - build-code
+      - lint-code:
+          requires: [build-code]
+      - test-code:
+          requires: [build-code]
+      - aws-ecr/build-and-push-image:
+          repo: "djarrin_udacity"
+          account-url: AWS_ECR_ACCOUNT_URL
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+          region: AWS_REGION
+          tag: "udacity_bcrypt_latest"
+          requires: [ lint-code, test-code ]
+          filters:
+            branches:
+              only:
+                - master
+                - deployment
       - deploy-application:
-          cluster-name: bcrypt-cluster-32432
+          cluster-name: bcrypt-cluster
           aws-region: us-east-1
           docker-image-name: "135924004413.dkr.ecr.us-east-1.amazonaws.com/djarrin_udacity:udacity_bcrypt_latest"
           version-info: "${CIRCLE_SHA1}"
@@ -317,18 +256,12 @@ workflows:
                 - deployment
       - test-application:
           name: test-application
-          cluster-name: bcrypt-cluster-32432
+          cluster-name: bcrypt-cluster
           aws-region: us-east-1
           expected-version-info: "${CIRCLE_SHA1}"
           requires:
             - deploy-application
       - deploy-infrastructure:
-          filters:
-            branches:
-              only:
-                - deploy-infrastructure
-      - cleanup-infrastructure:
-          requires: [ deploy-infrastructure ]
           filters:
             branches:
               only:
