@@ -31,6 +31,7 @@
     "@typescript-eslint/parser": "^4.28.2",
     "effector": "^21.8.12",
     "effector-react": "^21.3.3",
+    "har-validator": "^5.1.5",
     "hash-wasm": "^4.8.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
