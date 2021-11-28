@@ -76,7 +76,7 @@ export function EncryptionForm(): JSX.Element {
   return (
     <>
       <h2 className="ui center aligned header">
-        <Icon fitted name="random" /> Encryption
+        <Icon fitted name="random" /> Encryption (deployment #1)
       </h2>
       <Input
         type="text"
