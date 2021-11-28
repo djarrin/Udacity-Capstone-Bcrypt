@@ -165,6 +165,8 @@ jobs:
             while true; do
               EXTERNAL_IP=$(kubectl get service bcrypt | awk '{print $4}' | tail -n1)
               echo "Checking external IP: ${EXTERNAL_IP}"
+              echo -n "${EXTERNAL_IP}"
+              echo -z $(echo "${EXTERNAL_IP}" | grep "pending")
               if [ -n "${EXTERNAL_IP}" ] && [ -z $(echo "${EXTERNAL_IP}" | grep "pending") ]; then
                 break
               fi
@@ -257,7 +259,7 @@ workflows:
           name: test-application
           cluster-name: bcrypt-cluster
           aws-region: us-east-1
-          expected-version-info: "${CIRCLE_SHA1}"
+          expected-version-info: "Bcrypt Sandbox"
           requires:
             - deploy-application
       - deploy-infrastructure:
