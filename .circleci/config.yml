@@ -1,4 +1,31 @@
 version: 2.1
+orbs:
+  aws-ecr: circleci/aws-ecr@7.2.0
+  aws-ecs: circleci/aws-ecs@2.2.1
+  kubectl: airswap/kubectl@0.0.3
+  aws-eks: circleci/aws-eks@0.2.0
+  kubernetes: circleci/kubernetes@0.3.0
+
+commands:
+  destroy-infrastrucure:
+    description: Destroy cloudformation stacks given a workflow ID.
+    steps:
+      - run:
+          name: Destroy environments
+          when: on_fail
+          command: |
+            if ! command -v aws &> /dev/null
+            then
+              if ! command -v curl &> /dev/null
+              then
+                apk --no-cache add curl
+              fi
+              alias python="python3"
+              curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
+              unzip awscli-bundle.zip
+              ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
+            fi
+            aws cloudformation delete-stack --stack-name bcrypt-stack
 
 jobs:
   build-code:
@@ -15,25 +42,6 @@ jobs:
       - save_cache:
           paths: [node_modules]
           key: code-build
-
-  deploy-infrastructure:
-    docker:
-      - image: amazon/aws-cli
-    steps:
-      - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            yum -y install tar
-            yum -y install gzip
-      - run:
-          name: Ensure back-end infrastructure exists
-          command: |
-            aws cloudformation deploy \
-              --template-file .circleci/files/backend.yml \
-              --tags project=udapeople \
-              --stack-name "udapeople-be-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
 
   test-code:
     docker:
@@ -85,29 +93,177 @@ jobs:
           paths: [node_modules]
           key: code-build
 
-  build-deploy-docker-image:
-    docker:
-      - image: docker:17.05.0-ce-git
+  deploy-application:
+    executor: aws-eks/python3
+    parameters:
+      cluster-name:
+        description: |
+          Name of the EKS cluster
+        type: string
+      docker-image-name:
+        description: |
+          Name of the docker image to be deployed
+        type: string
+      version-info:
+        description: |
+          App version information
+        type: string
+      aws-region:
+        description: |
+          AWS region
+        type: string
+        default: ""
     steps:
       - checkout
-      - setup_remote_docker:
-          version: 19.03.13
-          docker_layer_caching: true
       - run:
-          name: Build and Deploy Docker Image
+          name: Create deployment manifest
           command: |
-            cd ~/project/
-            docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
-            ./docker_build_deploy.sh
-#    https://circleci.com/blog/how-to-build-a-docker-image-on-circleci-2-0/:
+            BUILD_DATE=$(date '+%Y%m%d%H%M%S')
+            cat .circleci/files/app-deployment.yaml.template |\
+               sed "s|DOCKER_IMAGE_NAME|<< parameters.docker-image-name >>|\
+                g;s|BUILD_DATE_VALUE|$BUILD_DATE|g;s|VERSION_INFO_VALUE|\
+                << parameters.version-info >>|g" > .circleci/files/app-deployment.yaml
+      - aws-eks/update-kubeconfig-with-authenticator:
+          cluster-name: << parameters.cluster-name >>
+          install-kubectl: true
+          aws-region: << parameters.aws-region >>
+      - kubernetes/create-or-update-resource:
+          resource-file-path: ".circleci/files/app-deployment.yaml"
+          get-rollout-status: false
+          resource-name: deployment/bcrypt
+      - kubernetes/create-or-update-resource:
+          resource-file-path: ".circleci/files/app-service.yaml"
+
+  test-application:
+    executor: aws-eks/python3
+    parameters:
+      cluster-name:
+        description: |
+          Name of the EKS cluster
+        type: string
+      aws-region:
+        description: |
+          AWS region
+        type: string
+        default: ""
+      expected-version-info:
+        description: |
+          Expected app version (this is used for testing that the
+          correct version has been deployed)
+        type: string
+    steps:
+      - aws-eks/update-kubeconfig-with-authenticator:
+          cluster-name: << parameters.cluster-name >>
+          install-kubectl: true
+          aws-region: << parameters.aws-region >>
+      - run:
+          name: Wait for service to be ready
+          command: |
+            kubectl get pods
+            kubectl get services
+            sleep 30
+            while true; do
+              EXTERNAL_IP=$(kubectl get service bcrypt | awk '{print $4}' | tail -n1)
+              echo "Checking external IP: ${EXTERNAL_IP}"
+              echo -n "${EXTERNAL_IP}"
+              echo -z $(echo "${EXTERNAL_IP}" | grep "pending")
+              if [ -n "${EXTERNAL_IP}" ] && [ -z $(echo "${EXTERNAL_IP}" | grep "pending") ]; then
+                break
+              fi
+              echo "Waiting for external IP to be ready: ${EXTERNAL_IP}"
+              sleep 10
+            done
+            sleep 180
+            curl -s --retry 10 "http://$EXTERNAL_IP" | grep "<< parameters.expected-version-info >>"
+
+  deploy-infrastructure:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Deploy Infrastructure as Code
+          command: |
+            aws cloudformation create-stack --stack-name bcrypt-stack \
+              --region us-east-1 \
+              --template-body file://.circleci/files/eks-infrastructure.yml  \
+              --capabilities CAPABILITY_NAMED_IAM \
+              --parameters ParameterKey=EKSClusterName,ParameterValue=bcrypt-cluster ParameterKey=WorkflowID,ParameterValue=${CIRCLE_WORKFLOW_ID:0:7}
+
+      - run:
+          name: Checking on Status of the Stack
+          command: |
+            started_date=$(date '+%H:%M:%S')
+            start=`date +%s`
+            success=1
+            while true; do
+              if [[ $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack --query "Stacks[*].StackStatus" --output text) == CREATE_IN_PROGRESS ]]
+              then
+                echo -e "EKS Cluster status : CREATE IN PROGRESS \n"
+                sleep 10
+              elif [[ $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack --query "Stacks[*].StackStatus" --output text) == CREATE_COMPLETE ]]
+              then
+                echo -e "EKS Cluster status : SUCCESSFULLY CREATED \n"
+                end=`date +%s`
+                runtime=$((end-start))
+                finished_date=$(date '+%H:%M:%S')
+                echo "started at :" $started_date
+                echo "finished at :" $finished_date
+                hours=$((runtime / 3600)); minutes=$(( (runtime % 3600) / 60 )); seconds=$(( (runtime % 3600) % 60 )); echo "Total time : $hours h $minutes min $seconds sec"
+                break
+              elif [[ $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack --query "Stacks[*].StackStatus" --output text) == ROLLBACK_IN_PROGRESS ]]
+              then
+                return 1
+                break
+              else
+                echo -e "EKS Cluster status : $(aws cloudformation describe-stacks --region us-east-1 --stack-name bcrypt-stack --query "Stacks[*].StackStatus" --output text) \n"
+                break
+              fi
+            done
+      - destroy-infrastrucure
+
+
 workflows:
   default:
     jobs:
       - build-code
-#      - deploy-infrastructure
       - lint-code:
           requires: [build-code]
       - test-code:
           requires: [build-code]
-      - build-deploy-docker-image:
-          requires: [lint-code, test-code]
+      - aws-ecr/build-and-push-image:
+          repo: "djarrin_udacity"
+          account-url: AWS_ECR_ACCOUNT_URL
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+          region: AWS_REGION
+          tag: "udacity_bcrypt_latest"
+          requires: [ lint-code, test-code ]
+          filters:
+            branches:
+              only:
+                - master
+                - deployment
+      - deploy-application:
+          cluster-name: bcrypt-cluster
+          aws-region: us-east-1
+          docker-image-name: "135924004413.dkr.ecr.us-east-1.amazonaws.com/djarrin_udacity:udacity_bcrypt_latest"
+          version-info: "${CIRCLE_SHA1}"
+          requires: [ aws-ecr/build-and-push-image ]
+          filters:
+            branches:
+              only:
+                - master
+                - deployment
+      - test-application:
+          name: test-application
+          cluster-name: bcrypt-cluster
+          aws-region: us-east-1
+          expected-version-info: "Bcrypt Sandbox"
+          requires:
+            - deploy-application
+      - deploy-infrastructure:
+          filters:
+            branches:
+              only:
+                - deploy-infrastructure

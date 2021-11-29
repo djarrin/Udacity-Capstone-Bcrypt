@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "EKSClusterName",
+    "ParameterValue": "bcrypt-cluster"
+  },
+  {
+    "ParameterKey": "WorkflowID",
+    "ParameterValue": "${CIRCLE_WORKFLOW_ID:0:7}"
+  }
+]
